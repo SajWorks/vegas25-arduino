@@ -37,32 +37,21 @@ void setup() {
 
 void loop() {
  
- // handle button presses
+  // handle button presses
   if (buttons.update()) {
 
-
     if (buttons.isPressed(0)) {
-
       Serial.println("Button: 1");
-
-
-
     } else if (buttons.isPressed(1)) {
-
       Serial.println("Button: 2");
-
-
-
-
     } else if (buttons.isPressed(2)) {
-
       Serial.println("Button: 3");
-
-
-
-     
     }
-    if (Serial.available() > 0) {
+
+  buttons.setLeds(button_0, button_1, button_2);
+  }
+
+  if (Serial.available() > 0) {
       String data = Serial.readStringUntil('\n');
       if (data.startsWith("BUZZ:")) {
         int freq = data.substring(5).toInt();
@@ -86,11 +75,6 @@ void loop() {
         leds.set(6,getColorForString(color4), 5);
         leds.set(7, getColorForString(color4), 5);
         leds.show();
-
-
-
-
-
       } 
       else if (data.startsWith("TRUE:")){
         String colors = data.substring(5);
@@ -98,7 +82,7 @@ void loop() {
         String color2 = colors.substring(1,2);
         String color3 = colors.substring(2,3);
         String color4 = colors.substring(3,4);
-        for (int i = 0; i < 90; i++){
+        // for (int i = 0; i < 90; i++){
           matrix.beginDraw();
 
           matrix.stroke(0xFFFFFFFF);
@@ -111,22 +95,9 @@ void loop() {
           Serial.println(colors);
           matrix.endText(SCROLL_LEFT);
           matrix.endDraw();
-
-          // Add the text
-
-        }
-
-
-
-
-
+        // }
       }
     }
-
-  buttons.setLeds(button_0, button_1, button_2);
-  }
-
-
 }
 ModulinoColor getColorForString(String s){
   if (s.equals("r")){

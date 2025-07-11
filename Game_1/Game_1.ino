@@ -81,6 +81,11 @@ void loop() {
       showColors = true;
       previousMillis = 0; // Reset timer to start displaying immediately
     }
+    else if (data.startsWith("CLEAR:")){
+      leds.clear();
+      leds.show();
+
+    }
   }
 
   // ✅ Scroll text every `interval` if flag is true

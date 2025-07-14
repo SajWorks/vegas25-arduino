@@ -8,11 +8,9 @@
 #include <Modulino.h>
 #include <Arduino_LED_Matrix.h>
 #include <TextAnimation.h>
-#include <ArduinoGraphics.h>
-#include <Arduino_LED_Matrix.h>
 
-ModulinoPixels leds; 
-ArduinoLEDMatrix matrix; 
+ModulinoPixels leds;
+ArduinoLEDMatrix matrix;
 ModulinoButtons buttons;
 ModulinoBuzzer buzzer;
 
@@ -23,15 +21,18 @@ bool button_0 = true;
 bool button_1 = true;
 bool button_2 = true;
 
-unsigned long previousMillis = 0;
-const unsigned long interval = 3000;
+String inputBuffer = "";
 
-String colors = "";
+// --- Async scroll variables ---
 bool showColors = false;
+String scrollText = "";
+int scrollOffset = 0;
+unsigned long lastScrollTime = 0;
+const int scrollSpeed = 250;  // ms per scroll step
 
 void setup() {
   Serial.begin(9600);
-  Modulino.begin(); 
+  Modulino.begin();
   buttons.begin();
   matrix.begin();
   buzzer.begin();
@@ -42,7 +43,18 @@ void setup() {
 void loop() {
   unsigned long currentMillis = millis();
 
-  // Handle button presses
+  // --- Serial input (non-blocking) ---
+  while (Serial.available()) {
+    char ch = Serial.read();
+    if (ch == '\n') {
+      handleSerialInput(inputBuffer);
+      inputBuffer = "";
+    } else {
+      inputBuffer += ch;
+    }
+  }
+
+  // --- Button handling ---
   if (buttons.update()) {
     if (buttons.isPressed(0)) Serial.println("Button: 1");
     if (buttons.isPressed(1)) Serial.println("Button: 2");
@@ -51,62 +63,72 @@ void loop() {
     buttons.setLeds(button_0, button_1, button_2);
   }
 
-  // Read serial commands
-  if (Serial.available() > 0) {
-    String data = Serial.readStringUntil('\n');
-
-    if (data.startsWith("BUZZ:")) {
-      int freq = data.substring(5).toInt();
-      if (freq > 0) {
-        buzzer.tone(freq, 1000);
-      }
-    }
-
-    else if (data.startsWith("GUESS:")) {
-      String guessColors = data.substring(6);
-      Serial.println(guessColors);
-      leds.set(0, getColorForString(guessColors.substring(0, 1)), 5);
-      leds.set(1, getColorForString(guessColors.substring(0, 1)), 5);
-      leds.set(2, getColorForString(guessColors.substring(1, 2)), 5);
-      leds.set(3, getColorForString(guessColors.substring(1, 2)), 5);
-      leds.set(4, getColorForString(guessColors.substring(2, 3)), 5);
-      leds.set(5, getColorForString(guessColors.substring(2, 3)), 5);
-      leds.set(6, getColorForString(guessColors.substring(3, 4)), 5);
-      leds.set(7, getColorForString(guessColors.substring(3, 4)), 5);
-      leds.show();
-    }
-
-    else if (data.startsWith("TRUE:")) {
-      colors = data.substring(5); // ✅ Update global `colors`
-      showColors = true;
-      previousMillis = 0; // Reset timer to start displaying immediately
-    }
-    else if (data.startsWith("CLEAR:")){
-      leds.clear();
-      leds.show();
-
-    }
-  }
-
-  // ✅ Scroll text every `interval` if flag is true
-  if (showColors && (currentMillis - previousMillis >= interval)) {
-    previousMillis = currentMillis;
+  // --- Async LED Matrix Scrolling ---
+  if (showColors && (currentMillis - lastScrollTime >= scrollSpeed)) {
+    lastScrollTime = currentMillis;
 
     matrix.beginDraw();
+    matrix.stroke(0xFFFFFF);  // Text color
+    matrix.clear();           // Clear previous frame
     matrix.textFont(Font_4x6);
-    matrix.beginText(5, 1, 0xFFFFFF);
-    matrix.print(colors);
-    matrix.textScrollSpeed(200);
-    matrix.endText(SCROLL_LEFT);
+    matrix.textScrollSpeed(0);  // We control scroll manually
+
+    int xPos = 12 - scrollOffset;         // Start from right edge
+    matrix.beginText(xPos, 0, 0xFFFFFF);  // y=0 is safest
+    matrix.print(scrollText);
+    matrix.endText();
+
     matrix.endDraw();
 
-    Serial.print("Scrolling: ");
-    Serial.println(colors);
+    scrollOffset++;
+    if (scrollOffset > scrollText.length() * 5) {
+      scrollOffset = 0;  // Reset scroll when done
+    }
   }
 }
 
-// Color parser
-ModulinoColor getColorForString(String s){
+// --- Serial Command Handling ---
+void handleSerialInput(String data) {
+  if (data.startsWith("BUZZ:")) {
+    int freq = data.substring(5).toInt();
+    if (freq > 0) {
+      buzzer.tone(freq, 1000);
+    }
+  }
+
+  else if (data.startsWith("GUESS:")) {
+    String guessColors = data.substring(6);
+    Serial.println(guessColors);
+    leds.set(0, getColorForString(guessColors.substring(0, 1)), 5);
+    leds.set(1, getColorForString(guessColors.substring(0, 1)), 5);
+    leds.set(2, getColorForString(guessColors.substring(1, 2)), 5);
+    leds.set(3, getColorForString(guessColors.substring(1, 2)), 5);
+    leds.set(4, getColorForString(guessColors.substring(2, 3)), 5);
+    leds.set(5, getColorForString(guessColors.substring(2, 3)), 5);
+    leds.set(6, getColorForString(guessColors.substring(3, 4)), 5);
+    leds.set(7, getColorForString(guessColors.substring(3, 4)), 5);
+    leds.show();
+  }
+
+  else if (data.startsWith("TRUE:")) {
+    scrollText = data.substring(5);
+    showColors = true;
+    scrollOffset = 0;
+    lastScrollTime = millis();
+  }
+
+  else if (data.startsWith("CLEAR:")) {
+    leds.clear();
+    leds.show();
+    showColors = false;  // Stop scrolling if you clear
+    matrix.beginDraw();
+    matrix.clear();
+    matrix.endDraw();
+  }
+}
+
+// --- Color Parser ---
+ModulinoColor getColorForString(String s) {
   if (s.equals("r")) return RED;
   if (s.equals("g")) return GREEN;
   if (s.equals("b")) return BLUE;

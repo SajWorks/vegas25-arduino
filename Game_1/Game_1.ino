@@ -21,6 +21,13 @@ bool button_0 = true;
 bool button_1 = true;
 bool button_2 = true;
 
+// Define some variables that can be used to perform some non-blocking scrolling 
+// on the LED matrix
+int scrollX = 0;
+unsigned long lastScrollTime = 0;
+const unsigned long scrollInterval = 200;
+String scrollText = "";
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -29,6 +36,7 @@ void setup() {
   Modulino.begin(); 
   buttons.begin();
   matrix.begin();
+  matrix.beginDraw();
   buzzer.begin();
   leds.begin();
 
@@ -36,6 +44,13 @@ void setup() {
 }
 
 void loop() {
+
+  // Handle non-blocking scroll
+  unsigned long currentTime = millis();
+  if (currentTime - lastScrollTime >= scrollInterval) {
+    lastScrollTime = currentTime;
+    scrollOneStep();
+  }
  
   // handle button presses
   if (buttons.update()) {
@@ -82,23 +97,43 @@ void loop() {
         String color2 = colors.substring(1,2);
         String color3 = colors.substring(2,3);
         String color4 = colors.substring(3,4);
+        scrollText = colors;
         // for (int i = 0; i < 90; i++){
-          matrix.beginDraw();
+          // matrix.beginDraw();
 
-          matrix.stroke(0xFFFFFFFF);
-          matrix.textScrollSpeed(500);
+          // matrix.stroke(0xFFFFFFFF);
+          // matrix.textScrollSpeed(500);
 
-          // Add the text
-          matrix.textFont(Font_5x7);
-          matrix.beginText(5, 1, 0xFFFFFF);
-          matrix.println(colors);
-          Serial.println(colors);
-          matrix.endText(SCROLL_LEFT);
-          matrix.endDraw();
+          // // Add the text
+          // matrix.textFont(Font_5x7);
+          // matrix.beginText(5, 1, 0xFFFFFF);
+          // matrix.println(colors);
+          // Serial.println(colors);
+          // matrix.endText(SCROLL_LEFT);
+          // matrix.endDraw();
         // }
       }
     }
 }
+
+// Function to scroll text one step
+void scrollOneStep() {
+  matrix.beginDraw();
+  matrix.clear();
+  matrix.stroke(0xFFFFFFFF);
+  matrix.textFont(Font_5x7);
+  matrix.beginText(scrollX, 1, 0xFFFFFF);
+  matrix.print(scrollText);
+  matrix.endText();
+  matrix.endDraw();
+
+  /// We know the scrollText in this situation should have 4 characters
+  scrollX--;
+  if (scrollX < -(4 * 6)) {
+    scrollX = 12;  // Reset scroll position (matrix is 12x8)
+  }
+}
+
 ModulinoColor getColorForString(String s){
   if (s.equals("r")){
     return RED;

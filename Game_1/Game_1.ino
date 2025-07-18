@@ -46,6 +46,8 @@ void loop() {
       Serial.println("Button: 2");
     } else if (buttons.isPressed(2)) {
       Serial.println("Button: 3");
+      leds.clear();
+      leds.show();
     }
 
   buttons.setLeds(button_0, button_1, button_2);
@@ -75,6 +77,7 @@ void loop() {
         leds.set(6,getColorForString(color4), 5);
         leds.set(7, getColorForString(color4), 5);
         leds.show();
+        buzzer.tone(500, 1000);
       } 
       else if (data.startsWith("TRUE:")){
         String colors = data.substring(5);
@@ -82,20 +85,9 @@ void loop() {
         String color2 = colors.substring(1,2);
         String color3 = colors.substring(2,3);
         String color4 = colors.substring(3,4);
-        // for (int i = 0; i < 90; i++){
-          matrix.beginDraw();
-
-          matrix.stroke(0xFFFFFFFF);
-          matrix.textScrollSpeed(500);
-
-          // Add the text
-          matrix.textFont(Font_5x7);
-          matrix.beginText(5, 1, 0xFFFFFF);
-          matrix.println(colors);
-          Serial.println(colors);
-          matrix.endText(SCROLL_LEFT);
-          matrix.endDraw();
-        // }
+        scrollText = colors;
+        leds.clear();
+        leds.show();
       }
     }
 }

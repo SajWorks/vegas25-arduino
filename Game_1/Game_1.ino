@@ -21,7 +21,7 @@ bool button_0 = true;
 bool button_1 = true;
 bool button_2 = true;
 
-String scrollText = "rbgy";
+String scrollText = "";
 int scrollX = 0;
 unsigned long lastScrollTime = 0;
 const unsigned long scrollInterval = 200;  // ms between scroll steps

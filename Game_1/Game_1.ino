@@ -21,6 +21,11 @@ bool button_0 = true;
 bool button_1 = true;
 bool button_2 = true;
 
+String scrollText = "rbgy";
+int scrollX = 0;
+unsigned long lastScrollTime = 0;
+const unsigned long scrollInterval = 200;  // ms between scroll steps
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -36,6 +41,13 @@ void setup() {
 }
 
 void loop() {
+
+  // Handle non-blocking scroll
+  unsigned long currentTime = millis();
+  if (currentTime - lastScrollTime >= scrollInterval) {
+    lastScrollTime = currentTime;
+    scrollOneStep();
+  }
  
   // handle button presses
   if (buttons.update()) {
@@ -91,6 +103,23 @@ void loop() {
       }
     }
 }
+
+// Function to scroll text one step
+void scrollOneStep() {
+  matrix.textFont(Font_5x7);
+  matrix.beginDraw();
+  matrix.clear();
+  matrix.beginText(scrollX, 1, 0xFFFFFF);
+  matrix.print(scrollText);
+  matrix.endText(NO_SCROLL);
+  matrix.endDraw();
+
+  scrollX--;
+  if (scrollX < -(4 * 6)) {
+    scrollX = 12;  // Reset scroll position (matrix is 12x8)
+  }
+}
+
 ModulinoColor getColorForString(String s){
   if (s.equals("r")){
     return RED;
